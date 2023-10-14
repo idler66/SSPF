@@ -1,4 +1,1 @@
-# SmallStepShortestPath
-SSSPA, A new shortest path algorithm that completely avoids problems caused by relaxation operations of Dijkstra's algorithm
-
-
+SSPF is the abbreviation of Small Step Path Finder. It includes a very efficient shortest path algorithm without relaxation operations named small step shortest path algorithm, and a new exact polynomial-time universal Steiner tree algorithm based on the shortest path algorithm.

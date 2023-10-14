@@ -1,4 +1,20 @@
+//#include <mmintrin.h>
+//#include <xmmintrin.h> 
+
+#include <vector>
+#include <cmath>
+//#include <omp.h>
+//#include <algorithm>
+//#include <execution>
+#include <iostream>
+#include <vector>
+
+
+#include "algorithm"
+#include "execution"
+
 namespace TSnap {
+
 
 /////////////////////////////////////////////////
 // Node centrality measures
@@ -923,4 +939,483 @@ TTableIterator GetMapHitsIterator(
   return TTableIterator(TableSeq);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//added by wangjufan
+  
+struct TFrontierMN {
+    double SrcDist;
+    unsigned long SrcNID;
+//    unsigned long PrtNID;
+};
+  
+int GetWeightedShortestPathByDijkstraMemoryArrayHash (IShortestPathGraph* Graph,
+                                                      unsigned long startNId,
+                                             TIntFltH& NIdDistH,
+                                             TDijkstraStat& stat,
+                                                std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID) {
+    std::vector<TFrontierMN> frontier;
+    auto comparator = [&] (TFrontierMN& left, TFrontierMN& right) {
+        return left.SrcDist > right.SrcDist;
+    };
+  
+  BitsContainerType *NodeDistFlag = Graph->getDistFlagVector();//opt
+  
+//    unsigned long maxnodeid = Graph->getMaxNodeID()+2;
+//   double * NodeDistH = ( double *)malloc(sizeof( double)*maxnodeid);
+//  for (unsigned long i=0; i < maxnodeid; i++) {
+//    NodeDistH[i] = __DBL_MAX__;
+//  }
+
+    std::unordered_map<int, double> NodeDistH = Graph->getNodeDistH();
+  
+    NodeDistH[startNId] = 0;
+    struct TFrontierMN node = {0, startNId};
+    frontier.push_back(node);
+    
+    while (! frontier.empty()) {
+      
+      if (frontier.size() > stat.getUseless()) {
+        stat.incrUseless(frontier.size());
+      }
+      
+        pop_heap(begin(frontier), end(frontier), comparator);
+        auto& frontierNode = frontier.back();
+        frontier.pop_back();
+        int&& SrcNID = frontierNode.SrcNID;
+        double ParentDistance = frontierNode.SrcDist;
+        double& plen = NodeDistH[SrcNID];//45
+        if (plen != ParentDistance) {
+            continue;
+        }
+      
+//      unsigned long ClusteringNID = frontierNode.SrcNID;///opt
+//      unsigned long pos = ClusteringNID & 0x3F;
+//      unsigned long index = ClusteringNID >> 6;
+//      SET_BIT(NodeDistFlag[index], pos);
+                
+        std::vector<TEdgeTuple>& AttrFltIntKV =  Graph->GetSortedAttrByNode(SrcNID);
+ 
+//      std::for_each(AttrFltIntKV.begin(), AttrFltIntKV.end(), [&](TEdgeTuple& tpl) {
+//        long int && dd =tpl.to;
+//        double& plen = NodeDistH[dd];
+//        double DstDistance = ParentDistance + tpl.EdgeLen;//origin
+//        stat.incrEdgeNum();
+//          if (plen > DstDistance) [[unlikely]] {
+//              NodeDistH[tpl.to] = DstDistance;
+//              struct TFrontierMN node = {DstDistance, tpl.to};
+//              frontier.push_back(node);
+//              push_heap(begin(frontier), end(frontier), comparator);
+//            stat.incrHeapItem();//3
+//          }
+//          });
+      
+      ///////
+      int currentEdge = 0;
+      unsigned long size = AttrFltIntKV.size();
+      while (size >  currentEdge) {
+        TEdgeTuple& tpl = (AttrFltIntKV)[currentEdge];
+        unsigned long&     dd =tpl.to;
+        double&  plen = NodeDistH[dd];
+        double DstDistance = ParentDistance + tpl.EdgeLen;//origin
+        currentEdge+=1;
+        stat.incrEdgeNum();
+          if (plen > DstDistance) [[unlikely]]
+          {
+              NodeDistH[dd] = DstDistance;
+//              struct TFrontierMN node = {DstDistance, dd};
+//              frontier.push_back(node);
+//              push_heap(begin(frontier), end(frontier), comparator);
+//            stat.incrHeapItem();//3
+          }
+        struct TFrontierMN node = {DstDistance, dd};
+        frontier.push_back(node);
+        push_heap(begin(frontier), end(frontier), comparator);
+      stat.incrHeapItem();//3
+      }
+      
+      /////////
+//      if(size >  currentEdge) {
+//        TEdgeTuple tpl = (AttrFltIntKV)[currentEdge];
+//        unsigned long     dd =tpl.to;
+//        double  plen = NodeDistH[dd];
+//        double DstDistance = ParentDistance + tpl.EdgeLen;//origin
+//
+//        TEdgeTuple tplNext ;
+//        unsigned long  ddNext ;
+//        double plenNext ;
+//        double DstDistanceNext ;//origin
+//        do {
+//          currentEdge+=1;
+//          if (size >  currentEdge) {
+//            tplNext = (AttrFltIntKV)[currentEdge];
+//            ddNext =tplNext.to;
+//            plenNext = NodeDistH[ddNext];
+//            DstDistanceNext = ParentDistance + tplNext.EdgeLen;//origin
+//          }
+//          stat.incrEdgeNum();
+//            if (plen > DstDistance) [[unlikely]] {
+//                NodeDistH[dd] = DstDistance;
+//                struct TFrontierMN node = {DstDistance, dd};
+//                frontier.push_back(node);
+//                push_heap(begin(frontier), end(frontier), comparator);
+//              stat.incrHeapItem();//3
+//            }
+//             dd = ddNext;
+//           plen = plenNext;
+//           DstDistance = DstDistanceNext;
+//        }while (size >  currentEdge);
+//      }
+      
+  }
+    
+    NIdDistH.Clr(false);
+//  for (unsigned long i = 0; i < maxnodeid; i++) {
+//      if (NodeDistH[i] != __DBL_MAX__) {
+//          NIdDistH.AddDat(i, NodeDistH[i]);
+//      }
+//  }
+    for (auto x : NodeDistH) {
+        if (x.second != __DBL_MAX__) {
+//            stat.incrNodeCount();
+            NIdDistH.AddDat(x.first, x.second);
+        }
+    }//wjf
+    return 0;
+}
+
+
+/////////////////////
+struct TFrontierSSNode {
+    double DstDist;
+    unsigned long DstNID;
+    unsigned long PrtNID;
+    double PrtDist;
+    unsigned long cto;
+    int EdgeIndex;
+    std::vector<TEdgeTuple>* AttrFltIntKVPtr;
+    int size;
+};
+
+struct TDistanceNode {
+    unsigned long NID;
+    double Dist;
+};
+
+//inline void pushNextFrontierNodeBest(std::vector<TFrontierSSNode>&  frontier,
+//                                     TSmallStepStat& stat,
+//                                     struct TFrontierSSNode& fnode,
+//                                     BitsContainerType* NodeDistFlag) {
+//    auto comparator = [&] (TFrontierSSNode& left, TFrontierSSNode& right) {
+//        return left.DstDist > right.DstDist;
+//    };
+//    int const Size = fnode.size;
+//    while (fnode.EdgeIndex < Size) {
+//        TEdgeTuple& tpl = (*fnode.AttrFltIntKVPtr)[fnode.EdgeIndex++];
+//        BitsContainerType vv = NodeDistFlag[tpl.index()];
+//      fnode.DstNID = tpl.to;
+//      bool flag = GET_BIT(vv, tpl.pos());
+//        if (!flag)  [[unlikely]]{
+//          fnode.DstDist = tpl.EdgeLen + fnode.PrtDist;
+//            frontier.push_back(fnode);
+//            push_heap(begin(frontier), end(frontier), comparator);
+//            break;
+//        }
+//    }
+//}
+//
+//int GetWeightedShortestPathBySmallStepOnNGraphBest(IShortestPathGraph* Graph,
+//                                                   unsigned long SrcNId,
+//                                               TIntFltH& NIdDistH,
+//                                               TSmallStepStat& stat) {
+//    NIdDistH.Clr(false);
+//    std::vector<TFrontierSSNode> frontier;
+//    auto comparator = [&] (TFrontierSSNode& left, TFrontierSSNode& right) {
+//        return left.DstDist > right.DstDist;
+//    };
+//    BitsContainerType *NodeDistFlag = Graph->getDistFlagVector();
+//
+//    unsigned long index = SrcNId >> BitsShiftCount;
+//    unsigned long pos = SrcNId & BitsMaskForEquivalenceClasses;
+//    SET_BIT(NodeDistFlag[index], pos);
+//    NIdDistH.AddDat(SrcNId, 0);
+//
+//    std::vector<TDistanceNode> distanceVector;
+//
+//    struct TFrontierSSNode pnode;
+//    pnode.AttrFltIntKVPtr =  &Graph->GetSortedAttrByNode(SrcNId);
+//    pnode.size = pnode.AttrFltIntKVPtr->size();
+//    pnode.EdgeIndex = 0;
+//    pnode.PrtDist = 0;
+//    pnode.PrtNID = 0;
+//    TSnap::pushNextFrontierNodeBest(frontier, stat, pnode, NodeDistFlag);
+//
+//    while (!frontier.empty()) {
+//        pop_heap(begin(frontier), end(frontier), comparator);
+//        auto frontierNode = frontier.back();
+//        frontier.pop_back();
+//        unsigned long DstNID = frontierNode.DstNID;
+//        unsigned long pos = DstNID & BitsMaskForEquivalenceClasses;
+//        unsigned long index = DstNID >> BitsShiftCount;
+//
+//        if (! GET_BIT(NodeDistFlag[index], pos))  [[unlikely]]{
+//            SET_BIT(NodeDistFlag[index], pos);
+//            stat.incrNodeCount();
+//            distanceVector.push_back({DstNID,frontierNode.DstDist});
+//            struct TFrontierSSNode nnode;
+//            nnode.AttrFltIntKVPtr =  &Graph->GetSortedAttrByNode(frontierNode.DstNID);
+//            nnode.size = nnode.AttrFltIntKVPtr->size();
+//            nnode.EdgeIndex = 0;
+//            nnode.PrtDist = frontierNode.DstDist;
+//            nnode.PrtNID = frontierNode.DstNID;
+//            TSnap::pushNextFrontierNodeBest(frontier, stat, nnode, NodeDistFlag);
+//        }
+////      stat.incrInvalidHeapItem();//1
+//        TSnap::pushNextFrontierNodeBest(frontier, stat, frontierNode, NodeDistFlag);
+//    }
+//    for (auto i = distanceVector.cbegin(); i != distanceVector.cend(); ++i) {
+//        NIdDistH.AddDat(i->NID, i->Dist);
+//    }//wjf
+//    return 0;
+//}
+
+static struct TFrontierSSNode preNode;
+////////////////////////////////////////////
+inline void pushNextFrontierNodeBestWithClustering(std::vector<TFrontierSSNode>&  frontier,
+                                     TSmallStepStat& stat,
+                                     struct TFrontierSSNode& fnode,
+                                     BitsContainerType* NodeDistFlag,
+                        std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID) {
+    auto comparator = [&] (TFrontierSSNode& left, TFrontierSSNode& right) {
+        return left.DstDist > right.DstDist;
+    };
+    int const Size = fnode.size;
+  
+  unsigned long ClusteringNID;
+  unsigned long index;
+  unsigned long pos;
+  
+  if (fnode.EdgeIndex < Size) {
+    TEdgeTuple& tpl = (*fnode.AttrFltIntKVPtr)[fnode.EdgeIndex];
+     ClusteringNID = tpl.cto;
+     index = ClusteringNID >> BitsShiftCount;
+     pos = ClusteringNID & BitsMaskForEquivalenceClasses;
+    while (fnode.EdgeIndex < Size) {
+      TEdgeTuple& tpl = (*fnode.AttrFltIntKVPtr)[fnode.EdgeIndex];
+      fnode.EdgeIndex++;
+      BitsContainerType& vv = NodeDistFlag[index];
+      if (!GET_BIT(vv, pos)) [[unlikely]]
+      {
+        fnode.DstNID = tpl.to;
+        fnode.cto = tpl.cto;
+        fnode.DstDist = tpl.EdgeLen + fnode.PrtDist;
+        frontier.push_back(fnode);
+        stat.incrHeapItem();//2
+        push_heap(begin(frontier), end(frontier), comparator);
+        break;
+      } else {
+        fnode.DstNID = tpl.to;
+        fnode.cto = tpl.cto;
+        fnode.DstDist = tpl.EdgeLen + fnode.PrtDist;
+        frontier.push_back(fnode);
+        stat.incrHeapItem();//2
+        push_heap(begin(frontier), end(frontier), comparator);
+        break;
+//        TEdgeTuple& tpl = (*fnode.AttrFltIntKVPtr)[fnode.EdgeIndex];
+//         ClusteringNID = tpl.cto;
+//         index = ClusteringNID >> BitsShiftCount;
+//         pos = ClusteringNID & BitsMaskForEquivalenceClasses;
+      }
+    }
+  }
+}
+
+int GetWeightedShortestPathBySmallStepOnNGraphBestWithClustering(IShortestPathGraph* Graph,
+                                                                 unsigned long SrcNId,
+                                               TIntFltH& NIdDistH,
+                                               TSmallStepStat& stat,
+                                  std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID) {
+    NIdDistH.Clr(false);
+    std::vector<TFrontierSSNode> frontier;
+    auto comparator = [&] (TFrontierSSNode& left, TFrontierSSNode& right) {
+        return left.DstDist > right.DstDist;
+    };
+    BitsContainerType *NodeDistFlag = Graph->getDistFlagVector();
+    
+    unsigned long ClusteringNID = NodeID2CNodeID[SrcNId];
+    unsigned long index = ClusteringNID >> BitsShiftCount;
+    unsigned long pos = ClusteringNID & BitsMaskForEquivalenceClasses;
+    SET_BIT(NodeDistFlag[index], pos);
+    NIdDistH.AddDat(SrcNId, 0);
+    stat.incrNodeCount();
+  
+    std::vector<TDistanceNode> distanceVector;
+    
+    struct TFrontierSSNode pnode;
+    pnode.AttrFltIntKVPtr =  &Graph->GetSortedAttrByNode(SrcNId);
+    pnode.size = pnode.AttrFltIntKVPtr->size();
+    pnode.EdgeIndex = 0;
+    pnode.PrtDist = 0;
+    pnode.PrtNID = 0;
+    TSnap::pushNextFrontierNodeBestWithClustering(frontier, stat, pnode, NodeDistFlag, NodeID2CNodeID);
+   
+  double PathLen = 0;
+    while (!frontier.empty()) {
+      
+      if (frontier.size() > stat.getUseless()) {
+        stat.incrUseless(frontier.size());
+      }
+      
+        pop_heap(begin(frontier), end(frontier), comparator);
+        auto frontierNode = frontier.back();
+        frontier.pop_back();
+        unsigned long DstNID = frontierNode.DstNID;
+      
+      unsigned long ClusteringNID = frontierNode.cto;
+      assert(ClusteringNID == frontierNode.cto);
+        unsigned long pos = ClusteringNID & BitsMaskForEquivalenceClasses;
+        unsigned long index = ClusteringNID >> BitsShiftCount;
+      
+        if (! GET_BIT(NodeDistFlag[index], pos)) [[unlikely]]{
+          PathLen = frontierNode.DstDist;
+            SET_BIT(NodeDistFlag[index], pos);
+            stat.incrNodeCount();
+            distanceVector.push_back({DstNID,frontierNode.DstDist});
+            struct TFrontierSSNode nnode;
+            nnode.AttrFltIntKVPtr =  &Graph->GetSortedAttrByNode(frontierNode.DstNID);
+            nnode.size = nnode.AttrFltIntKVPtr->size();
+            nnode.EdgeIndex = 0;
+            nnode.PrtDist = frontierNode.DstDist;
+            nnode.PrtNID = frontierNode.DstNID;
+            TSnap::pushNextFrontierNodeBestWithClustering(frontier, stat, nnode, NodeDistFlag, NodeID2CNodeID);
+          
+          TSnap::pushNextFrontierNodeBestWithClustering(frontier, stat, frontierNode, NodeDistFlag, NodeID2CNodeID);
+          
+        }else {
+          TSnap::pushNextFrontierNodeBestWithClustering(frontier, stat, frontierNode, NodeDistFlag, NodeID2CNodeID);
+        }
+        
+    }
+    for (auto i = distanceVector.cbegin(); i != distanceVector.cend(); ++i) {
+        NIdDistH.AddDat(i->NID, i->Dist);
+    }//wjf
+    return 0;
+}
+
+
+/////////////////////////////////////////// id to c id
+inline void pushNextFrontierNode4Clustering(std::vector<TFrontierSSNode>&  frontier,
+                                     struct TFrontierSSNode& fnode,
+                                     BitsContainerType* NodeDistFlag,
+                                            std::vector<unsigned long>& WaitingNodeIDs) {
+    auto comparator = [&] (TFrontierSSNode& left, TFrontierSSNode& right) {
+        return left.DstDist > right.DstDist;
+    };
+    int const Size = fnode.size;
+  
+  if(fnode.EdgeIndex == 0) {
+    int i = 0;
+    while (i < Size) {
+        TEdgeTuple& tpl = (*fnode.AttrFltIntKVPtr)[i++];
+        BitsContainerType vv = NodeDistFlag[tpl.index()];
+        bool flag = GET_BIT(vv, tpl.pos());
+        if (!flag) {
+          WaitingNodeIDs.push_back(tpl.to);
+        }
+    }
+  }
+  
+    while (fnode.EdgeIndex < Size) {
+        TEdgeTuple& tpl = (*fnode.AttrFltIntKVPtr)[fnode.EdgeIndex++];
+        BitsContainerType vv = NodeDistFlag[tpl.index()];
+      fnode.DstNID = tpl.to;
+      bool flag = GET_BIT(vv, tpl.pos());
+        if (!flag)  [[unlikely]]{
+            fnode.DstDist = tpl.EdgeLen + fnode.PrtDist;
+            frontier.push_back(fnode);
+            push_heap(begin(frontier), end(frontier), comparator);
+            break;
+        }
+    }
+}
+std::vector<unsigned long> GetWeightedShortestPathPoints(
+                                  IShortestPathGraph* Graph,
+                                  unsigned long SrcNId,
+                                  BitsContainerType *NodeDistFlag,
+                                  std::vector<unsigned long>& WaitingNodeIDs) {
+  std::vector<unsigned long> members;//待选等价类
+  
+    std::vector<TFrontierSSNode> frontier;
+    auto comparator = [&] (TFrontierSSNode& left, TFrontierSSNode& right) {
+        return left.DstDist > right.DstDist;
+    };
+    
+    unsigned long index = SrcNId >> BitsShiftCount;
+    unsigned long pos = SrcNId & BitsMaskForEquivalenceClasses;
+    SET_BIT(NodeDistFlag[index], pos);
+    members.push_back(SrcNId);
+  
+    std::vector<TDistanceNode> distanceVector;//最短路径长度
+    
+    struct TFrontierSSNode pnode;
+    pnode.AttrFltIntKVPtr =  &Graph->GetSortedAttrByNode(SrcNId);
+    pnode.size = pnode.AttrFltIntKVPtr->size();
+    pnode.EdgeIndex = 0;
+    pnode.PrtDist = 0;
+    pnode.PrtNID = 0;
+    TSnap::pushNextFrontierNode4Clustering(frontier, pnode, NodeDistFlag, WaitingNodeIDs);
+   
+    while (!frontier.empty() & members.size() < EquivalenceClassesElementNum) {
+        pop_heap(begin(frontier), end(frontier), comparator);
+        auto frontierNode = frontier.back();
+        frontier.pop_back();
+        unsigned long DstNID = frontierNode.DstNID;
+        unsigned long pos = DstNID & BitsMaskForEquivalenceClasses;
+        unsigned long index = DstNID >> BitsShiftCount;
+      
+        if (! GET_BIT(NodeDistFlag[index], pos))  [[unlikely]]{
+          SET_BIT(NodeDistFlag[index], pos);
+          members.push_back(DstNID);
+            distanceVector.push_back({DstNID,frontierNode.DstDist});
+            struct TFrontierSSNode nnode;
+            nnode.AttrFltIntKVPtr =  &Graph->GetSortedAttrByNode(frontierNode.DstNID);
+            nnode.size = nnode.AttrFltIntKVPtr->size();
+            nnode.EdgeIndex = 0;
+            nnode.PrtDist = frontierNode.DstDist;
+            nnode.PrtNID = frontierNode.DstNID;
+            TSnap::pushNextFrontierNode4Clustering(frontier, nnode, NodeDistFlag, WaitingNodeIDs);
+        }
+        TSnap::pushNextFrontierNode4Clustering(frontier, frontierNode, NodeDistFlag, WaitingNodeIDs);
+    }
+    return members;
+}
+
+void nodeID2ClusteringID(std::unordered_map<unsigned long, unsigned long>& nid2clustering,
+                         unsigned long SrcNId,
+                         IShortestPathGraph* Graph,
+                         BitsContainerType *NodeDistFlag,
+                         std::vector<std::vector<unsigned long>>& equalClss) {
+  //待选节点 K=2 每次最多选择两个节点
+  //MarkNum = 64 计算最短路径64个节点的最短路径
+  std::vector<unsigned long> WaitingNodeIDs;   //待选 迭代起点
+  WaitingNodeIDs.push_back(SrcNId);
+  
+  while (WaitingNodeIDs.size()) {
+    unsigned long rootID = WaitingNodeIDs.back();
+    WaitingNodeIDs.pop_back();
+    unsigned long pos = rootID & BitsMaskForEquivalenceClasses;
+    unsigned long index = rootID >> BitsShiftCount;
+    if (GET_BIT(NodeDistFlag[index], pos)) {
+      continue;
+    }
+    auto EC = GetWeightedShortestPathPoints(Graph, rootID, NodeDistFlag, WaitingNodeIDs);
+    equalClss.push_back(EC);
+  }
+}
+
+/////////////////////
+//动态生产图
+
 }; // namespace TSnap
+ 

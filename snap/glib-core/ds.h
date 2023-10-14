@@ -488,6 +488,9 @@ public:
     return ValT[ValN];}
   /// Returns a reference to the element at position \c ValN in the vector.
   TVal& operator[](const TSizeTy& ValN){
+      if ((0 > ValN || ValN > Vals)) {
+          
+      }
     AssertR((0<=ValN)&&(ValN<Vals), GetXOutOfBoundsErrMsg(ValN));
     return ValT[ValN];}
   /// Returns the memory footprint (the number of bytes) of the vector.

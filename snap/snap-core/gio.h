@@ -16,6 +16,7 @@ const TStr NULL_VAL = ("__null__");
 
 /// Loads a (directed, undirected or multi) graph from a text file InFNm with 1 edge per line (whitespace separated columns, integer node ids).
 template <class PGraph> PGraph LoadEdgeList(const TStr& InFNm, const int& SrcColId=0, const int& DstColId=1);
+template <class PGraph> PGraph LoadAttrEdgeList(const TStr& InFNm, const int& SrcColId=0, const int& DstColId=1, const int& AttrColId=2);
 /// Loads a (directed, undirected or multi) graph from a text file InFNm with 1 edge per line ('Separator' separated columns, integer node ids).
 template <class PGraph> PGraph LoadEdgeList(const TStr& InFNm, const int& SrcColId, const int& DstColId, const char& Separator);
 /// Loads a network from the text file InFNm with 1 node/edge per line ('Separator' separated columns, integer node id(s) + node/edge attributes).
@@ -80,6 +81,28 @@ PGraph LoadEdgeList(const TStr& InFNm, const int& SrcColId, const int& DstColId)
     if (! Graph->IsNode(DstNId)) { Graph->AddNode(DstNId); }
     Graph->AddEdge(SrcNId, DstNId);
   }
+  Graph->Defrag();
+  return Graph;
+}
+
+
+//added by jufanWANG
+template <class PGraph>
+PGraph LoadAttrEdgeList(const TStr& InFNm, const int& SrcColId, const int& DstColId, const int& AttrColId) {
+  TSsParser Ss(InFNm, ssfWhiteSep, true, true, true);
+  PGraph Graph = PGraph::TObj::New();
+  int SrcNId, DstNId;
+    double AttrVal;
+
+  while (Ss.Next()) {
+    if (! Ss.GetInt(SrcColId, SrcNId)
+        || ! Ss.GetInt(DstColId, DstNId)
+        || ! Ss.GetFlt(AttrColId, AttrVal)) { continue; }
+    if (! Graph->IsNode(SrcNId)) { Graph->AddNode(SrcNId); }
+    if (! Graph->IsNode(DstNId)) { Graph->AddNode(DstNId); }
+    Graph->AddAttrEdge(SrcNId, DstNId, AttrVal);
+  }
+    
   Graph->Defrag();
   return Graph;
 }

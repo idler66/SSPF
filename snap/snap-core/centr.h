@@ -1,3 +1,6 @@
+#include <queue>
+
+
 namespace TSnap {
 
 /////////////////////////////////////////////////
@@ -117,6 +120,103 @@ template<class PGraph> void GetHitsMP(const PGraph& Graph, TIntFltH& NIdHubH, TI
 /// Dijkstra Algorithm
 /// For more info see:  https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
 int GetWeightedShortestPath(const PNEANet Graph, const int& SrcNId, TIntFltH& NIdDistH, const TFltV& Attr);
+
+/////////////////////////////////////////////////
+//added by wangjufan
+
+
+struct TSmallStepStat {
+private:
+  unsigned long HeapItem;
+  unsigned long NodeCount;
+  unsigned long Useless;
+public:
+    void restat() {
+      HeapItem = 0;
+        NodeCount = 0;
+      Useless=0;
+    }
+  void incrHeapItem(){
+    HeapItem++;
+  }
+unsigned long getHeapItem() {
+    return HeapItem;
+}
+    void incrNodeCount(){
+        NodeCount++;
+    }
+    unsigned long getNodeCount() {
+        return NodeCount;
+    }
+  
+  
+  unsigned long  getUseless(){
+    return Useless;
+  }
+  void incrUseless(unsigned long dd) {
+    Useless = dd;
+  }
+};
+
+
+//int GetWeightedShortestPathBySmallStepOnNGraphBest(IShortestPathGraph* Graph,
+//                                               unsigned long SrcNId,
+//                                               TIntFltH& NIdDistH,
+//                                                   TSmallStepStat& stat);
+
+void PreloadRoutine4SmallStep();
+
+struct TDijkstraStat {
+private:
+  unsigned long HeapItem;
+  unsigned long EdgeNum;
+  unsigned long Useless;
+public:
+    void restat() {
+      HeapItem = 0;
+        EdgeNum = 0;
+      Useless=0;
+    }
+  void incrHeapItem(){
+    HeapItem++;
+  }
+unsigned long getHeapItem() {
+    return HeapItem;
+}
+    void incrEdgeNum(){
+      EdgeNum++;
+    }
+  unsigned long getEdgeNum() {
+      return EdgeNum;
+  }
+  
+  
+  unsigned long  getUseless(){
+    return Useless;
+  }
+  void incrUseless(unsigned long dd) {
+    Useless = dd;
+  }
+};
+
+int GetWeightedShortestPathByDijkstraMemoryArrayHash (IShortestPathGraph* Graph,
+                                             unsigned long startNId,
+                                             TIntFltH& NIdDistH,
+                                                      TDijkstraStat& stat,
+                                                      std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID);
+
+void nodeID2ClusteringID(std::unordered_map<unsigned long, unsigned long>& nid2clustering,
+                         unsigned long SrcNId,
+                         IShortestPathGraph* Graph,
+                         BitsContainerType *NodeDistFlag,
+                         std::vector<std::vector<unsigned long>>& equalClss);
+
+int GetWeightedShortestPathBySmallStepOnNGraphBestWithClustering(IShortestPathGraph* Graph,
+                                                                 unsigned long SrcNId,
+                                               TIntFltH& NIdDistH,
+                                               TSmallStepStat& stat,
+                      std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID);
+
 /////////////////////////////////////////////////
 // Implementation
 template <class PGraph>

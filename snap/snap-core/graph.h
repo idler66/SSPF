@@ -1,5 +1,19 @@
 //#//////////////////////////////////////////////
 /// Undirected graphs
+#include <unordered_map>
+#include <vector>
+#include <math.h>
+
+
+#define BitsContainerType unsigned long
+//unsigned long 6
+//unsigned int 5
+//ushort 4
+//u_char 3
+#define BitsShiftCount 6
+#define EquivalenceClassesElementNum 1<<BitsShiftCount
+//log2(sizeof(BitsContainerType)*8)
+#define BitsMaskForEquivalenceClasses (1<<BitsShiftCount)-1
 
 class TUNGraph;
 class TBPGraph;
@@ -24,18 +38,52 @@ typedef TPt<TNGraph> PNGraph;
 /// Pointer to a directed multigraph (TNEGraph)
 typedef TPt<TNEGraph> PNEGraph;
 
+struct TEdgeTuple {
+  unsigned long cto;
+  unsigned long to;
+  double EdgeLen;
+  unsigned long pos() {
+    return to & BitsMaskForEquivalenceClasses;
+  }
+  unsigned long index() {
+    return to >> BitsShiftCount;
+  }
+  TEdgeTuple(){};
+  TEdgeTuple(double edgeLen, unsigned long dst) : EdgeLen(edgeLen), to(dst){};
+};
+
+class IShortestPathGraph {
+public:
+  virtual std::vector<TEdgeTuple>& GetSortedAttrByNode(const int& NId) = 0;
+  virtual void updateNodeIDs(std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID) = 0;
+  virtual std::unordered_map<int, double>& getNodeDistH() = 0;
+    virtual unsigned long getMaxNodeID() = 0;
+    virtual int GetBitsContianerNum() = 0;
+    virtual BitsContainerType* getDistFlagVector() = 0;
+};
+
+#define    SET_BIT(x, bit)    (x |= ((BitsContainerType)1 << bit))
+#define    GET_BIT(x, bit)    (x & ((BitsContainerType)1 << bit))
+
 //#//////////////////////////////////////////////
 /// Undirected graph. ##TUNGraph::Class
-class TUNGraph {
+class TUNGraph : public IShortestPathGraph {
 public:
   typedef TUNGraph TNet;
   typedef TPt<TUNGraph> PNet;
+private:
+//added by wangjufan
+  std::unordered_map<int, double> NodeDistH;
+    BitsContainerType *FlagDistArray;
+    unsigned long MaxNodeID;
 public:
   class TNode {
   private:
     TInt Id;
     TIntV NIdV;
   public:
+      std::vector<TEdgeTuple> AttrFltIntKV;//added by wangjufan
+    
     TNode() : Id(-1), NIdV() { }
     TNode(const int& NId) : Id(NId), NIdV() { }
     TNode(const TNode& Node) : Id(Node.Id), NIdV(Node.NIdV) { }
@@ -147,12 +195,25 @@ private:
     NodeH.LoadShM(ShMIn, Fn);
   }
 public:
-  TUNGraph() : CRef(), MxNId(0), NEdges(0), NodeH() { }
+  TUNGraph() : CRef(), MxNId(0), NEdges(0), NodeH() {
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
   /// Constructor that reserves enough memory for a graph of Nodes nodes and Edges edges.
-  explicit TUNGraph(const int& Nodes, const int& Edges) : MxNId(0), NEdges(0) { Reserve(Nodes, Edges); }
-  TUNGraph(const TUNGraph& Graph) : MxNId(Graph.MxNId), NEdges(Graph.NEdges), NodeH(Graph.NodeH) { }
+  explicit TUNGraph(const int& Nodes, const int& Edges) : MxNId(0), NEdges(0) {
+      Reserve(Nodes, Edges);
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
+  TUNGraph(const TUNGraph& Graph) : MxNId(Graph.MxNId), NEdges(Graph.NEdges), NodeH(Graph.NodeH) {
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
   /// Constructor that loads the graph from a (binary) stream SIn.
-  TUNGraph(TSIn& SIn) : MxNId(SIn), NEdges(SIn), NodeH(SIn) { }
+  TUNGraph(TSIn& SIn) : MxNId(SIn), NEdges(SIn), NodeH(SIn) {
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
   /// Saves the graph to a (binary) stream SOut.
 
   void Save(TSOut& SOut) const { MxNId.Save(SOut); NEdges.Save(SOut); NodeH.Save(SOut); SOut.Flush(); }
@@ -252,21 +313,76 @@ public:
   /// Returns a small graph on 5 nodes and 5 edges. ##TUNGraph::GetSmallGraph
   static PUNGraph GetSmallGraph();
 
+    ////////////////////////////////////
+    //added by wangjufan
+    int AddAttrEdge(const int& SrcNId, const int& DstNId, const float& AttrVal);
+    std::vector<TEdgeTuple>& GetSortedAttrByNode(const int& NId) {
+        return NodeH.GetDat(NId).AttrFltIntKV;
+    }
+  void updateNodeIDs(std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID) {
+    
+  }
+
+  std::unordered_map<int, double>& getNodeDistH() {
+        for (TNodeI NI = BegNI(); NI < EndNI(); NI++) {
+            int nodeID = NI.GetId();
+            (NodeDistH)[nodeID] = __DBL_MAX__;
+        }
+        return NodeDistH;
+    }
+    
+  unsigned long getMaxNodeID() {
+        if (FlagDistArray == NULL) {
+          FlagDistArray = (BitsContainerType *)malloc(sizeof(BitsContainerType) *GetBitsContianerNum());
+        }
+        return MaxNodeID;
+    }
+    
+    BitsContainerType* getDistFlagVector() {
+      if (FlagDistArray == NULL) {
+        FlagDistArray = (BitsContainerType *)malloc(sizeof(BitsContainerType) *GetBitsContianerNum());
+      }
+      memset(FlagDistArray, 0, GetBitsContianerNum()*sizeof(BitsContainerType));
+        return FlagDistArray;
+    }
+    int GetBitsContianerNum() {
+      return 1 + (MaxNodeID>>BitsShiftCount);
+    }
+    
+    int sortEdgeByAttr();
+    ~TUNGraph() {
+        delete FlagDistArray;
+    }
+    
   friend class TUNGraphMtx;
   friend class TPt<TUNGraph>;
 };
 
 //#//////////////////////////////////////////////
 /// Directed graph. ##TNGraph::Class
-class TNGraph {
+
+class GenGraph: public IShortestPathGraph {
+  
+};
+
+class TNGraph: public IShortestPathGraph {
 public:
   typedef TNGraph TNet;
   typedef TPt<TNGraph> PNet;
+private:
+//added by wangjufan
+    std::unordered_map<int, double> NodeDistH;
+    BitsContainerType * FlagDistArray;
+    unsigned long MaxNodeID;
 public:
   class TNode {
   private:
     TInt Id;
     TIntV InNIdV, OutNIdV;
+      
+  public:
+      std::vector<TEdgeTuple> AttrFltIntKV;//added by wangjufan
+      
   public:
     TNode() : Id(-1), InNIdV(), OutNIdV() { }
     TNode(const int& NId) : Id(NId), InNIdV(), OutNIdV() { }
@@ -378,12 +494,24 @@ private:
   }
 
 public:
-  TNGraph() : CRef(), MxNId(0), NodeH() { }
+  TNGraph() : CRef(), MxNId(0), NodeH() {
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
   /// Constructor that reserves enough memory for a graph of Nodes nodes and Edges edges.
-  explicit TNGraph(const int& Nodes, const int& Edges) : MxNId(0) { Reserve(Nodes, Edges); }
-  TNGraph(const TNGraph& Graph) : MxNId(Graph.MxNId), NodeH(Graph.NodeH) { }
+  explicit TNGraph(const int& Nodes, const int& Edges) : MxNId(0) { Reserve(Nodes, Edges);
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
+  TNGraph(const TNGraph& Graph) : MxNId(Graph.MxNId), NodeH(Graph.NodeH) {
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
   /// Constructor that loads the graph from a (binary) stream SIn.
-  TNGraph(TSIn& SIn) : MxNId(SIn), NodeH(SIn) { }
+  TNGraph(TSIn& SIn) : MxNId(SIn), NodeH(SIn) {
+      FlagDistArray = NULL;
+      MaxNodeID = 0;
+  }
   /// Saves the graph to a (binary) stream SOut.
   void Save(TSOut& SOut) const { MxNId.Save(SOut); NodeH.Save(SOut); SOut.Flush(); }
   /// Static constructor that returns a pointer to the graph. Call: PNGraph Graph = TNGraph::New().
@@ -486,6 +614,47 @@ public:
   void Dump(FILE *OutF=stdout) const;
   /// Returns a small graph on 5 nodes and 6 edges. ##TNGraph::GetSmallGraph
   static PNGraph GetSmallGraph();
+    
+    ////////////////////////////////////
+    //added by wangjufan
+    int AddAttrEdge(const int& SrcNId, const int& DstNId, const float& AttrVal);
+    std::vector<TEdgeTuple>& GetSortedAttrByNode(const int& NId) {
+        return NodeH.GetDat(NId).AttrFltIntKV;
+    }
+  void updateNodeIDs(std::unordered_map<unsigned long, unsigned long>& NodeID2CNodeID) {
+    
+  }
+    std::unordered_map<int, double>& getNodeDistH() {
+        for (TNodeI NI = BegNI(); NI < EndNI(); NI++) {
+            int nodeID = NI.GetId();
+            (NodeDistH)[nodeID] = __DBL_MAX__;
+        }
+        return NodeDistH;
+    }
+  unsigned long getMaxNodeID() {
+        if (FlagDistArray == NULL) {
+          FlagDistArray = (BitsContainerType *)malloc(sizeof(BitsContainerType) *GetBitsContianerNum());
+        }
+        return MaxNodeID;
+    }
+    
+    BitsContainerType* getDistFlagVector() {
+      if (FlagDistArray == NULL) {
+        FlagDistArray = (BitsContainerType *)malloc(sizeof(BitsContainerType) *GetBitsContianerNum());
+      }
+      memset(FlagDistArray, 0, GetBitsContianerNum()*sizeof(BitsContainerType));
+        return FlagDistArray;
+    }
+    int GetBitsContianerNum() {
+      return 1 + (MaxNodeID>>BitsShiftCount);
+//        return ceil((MaxNodeID+1) / ( 8 * sizeof(BitsContainerType)) );
+    }
+    
+    int sortEdgeByAttr();
+    ~TNGraph() {
+      delete FlagDistArray;
+    }
+    
   friend class TPt<TNGraph>;
   friend class TNGraphMtx;
 };

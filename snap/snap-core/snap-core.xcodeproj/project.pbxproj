@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D819B682AFCC30000EC3774 /* frontierpush.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D819B672AFCC30000EC3774 /* frontierpush.c */; };
 		848A6F9C16D0631500E6F7D3 /* testSnap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 846313AF16CF5BCA003F2BAE /* testSnap.cpp */; };
 		848A6F9E16D0633300E6F7D3 /* Snap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 846313A716CF5BCA003F2BAE /* Snap.cpp */; };
 		848A6FC116D0691C00E6F7D3 /* alg.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8463136B16CF5BCA003F2BAE /* alg.cpp */; };
@@ -303,6 +304,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0D819B662AFCC30000EC3774 /* frontierpush.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = frontierpush.h; sourceTree = "<group>"; };
+		0D819B672AFCC30000EC3774 /* frontierpush.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = frontierpush.c; sourceTree = "<group>"; };
 		8463136B16CF5BCA003F2BAE /* alg.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = alg.cpp; sourceTree = "<group>"; };
 		8463136C16CF5BCA003F2BAE /* alg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = alg.h; sourceTree = "<group>"; };
 		8463136D16CF5BCA003F2BAE /* anf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = anf.cpp; sourceTree = "<group>"; };
@@ -840,6 +843,8 @@
 				846313B216CF5BCA003F2BAE /* triad.h */,
 				846313B316CF5BCA003F2BAE /* util.cpp */,
 				846313B416CF5BCA003F2BAE /* util.h */,
+				0D819B662AFCC30000EC3774 /* frontierpush.h */,
+				0D819B672AFCC30000EC3774 /* frontierpush.c */,
 			);
 			name = "snap-core";
 			sourceTree = "<group>";
@@ -1420,6 +1425,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = 8463135A16CF5AF8003F2BAE;
@@ -1451,6 +1457,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				848A6F9E16D0633300E6F7D3 /* Snap.cpp in Sources */,
+				0D819B682AFCC30000EC3774 /* frontierpush.c in Sources */,
 				848A6F9C16D0631500E6F7D3 /* testSnap.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1756,7 +1763,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -1785,10 +1792,12 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = /usr/local/include;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				SDKROOT = macosx;
 			};
@@ -1797,16 +1806,24 @@
 		848A6F9816D062F800E6F7D3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				GCC_OPTIMIZATION_LEVEL = fast;
 				HEADER_SEARCH_PATHS = "../glib-core";
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
 		848A6F9916D062F800E6F7D3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				GCC_OPTIMIZATION_LEVEL = fast;
 				HEADER_SEARCH_PATHS = "../glib-core";
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};

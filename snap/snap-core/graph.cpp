@@ -1,4 +1,10 @@
 /////////////////////////////////////////////////
+
+bool compareEdgeAttrByFist(TEdgeTuple& i1, TEdgeTuple& i2)
+{
+    return (i1.EdgeLen < i2.EdgeLen);
+}
+
 // Undirected Graph
 bool TUNGraph::HasFlag(const TGraphFlag& Flag) const {
   return HasGraphFlag(TUNGraph::TNet, Flag);
@@ -226,6 +232,37 @@ PUNGraph TUNGraph::GetSmallGraph() {
   Graph->AddEdge(1,2);
   return Graph;
 }
+
+//////////////////////////////////////////////
+//added by wangjufan
+int TUNGraph::AddAttrEdge(const int& SrcNId, const int& DstNId, const float& AttrVal) {
+  IAssertR(IsNode(SrcNId) && IsNode(DstNId), TStr::Fmt("%d or %d not a node.", SrcNId, DstNId).CStr());
+  IAssert(! IsEdge(SrcNId, DstNId));
+    if (SrcNId == DstNId) {
+        return -2;
+    }
+    if (MaxNodeID < DstNId) {
+        MaxNodeID = DstNId;
+    }
+    if (MaxNodeID < SrcNId) {
+        MaxNodeID = SrcNId;
+    }
+//    GetNode(SrcNId).NIdV.Add(DstNId);
+//    GetNode(DstNId).NIdV.Add(SrcNId);
+   
+    GetNode(SrcNId).AttrFltIntKV.emplace_back(TEdgeTuple(AttrVal, DstNId));
+    GetNode(DstNId).AttrFltIntKV.emplace_back(TEdgeTuple(AttrVal, SrcNId));
+  return -1; // no edge id
+}
+
+int TUNGraph::sortEdgeByAttr() {
+    for (TNodeI It = BegNI(); It < EndNI(); It++) {
+      int node_id = It.GetId();//node id
+        sort(GetNode(node_id).AttrFltIntKV.begin(), GetNode(node_id).AttrFltIntKV.end(), compareEdgeAttrByFist);
+    }
+    return -1;
+}
+
 
 /////////////////////////////////////////////////
 // Directed Node Graph
@@ -457,6 +494,35 @@ PNGraph TNGraph::GetSmallGraph() {
   G->AddEdge(0,1); G->AddEdge(1,2); G->AddEdge(0,2);
   G->AddEdge(1,3); G->AddEdge(3,4); G->AddEdge(2,3);
   return G;
+}
+
+//////////////////////////////////////////////
+//added by wangjufan
+
+int TNGraph::AddAttrEdge(const int& SrcNId, const int& DstNId, const float& AttrVal) {
+  IAssertR(IsNode(SrcNId) && IsNode(DstNId), TStr::Fmt("%d or %d not a node.", SrcNId, DstNId).CStr());
+  IAssert(! IsEdge(SrcNId, DstNId));
+    if (SrcNId == DstNId) {
+        return -2;
+    }
+    if (MaxNodeID < DstNId) {
+        MaxNodeID = DstNId;
+    }
+    if (MaxNodeID < SrcNId) {
+        MaxNodeID = SrcNId;
+    }
+//    GetNode(SrcNId).OutNIdV.Add(DstNId);
+//    GetNode(DstNId).InNIdV.Add(SrcNId);
+    GetNode(SrcNId).AttrFltIntKV.emplace_back(TEdgeTuple(AttrVal, DstNId));
+  return -1; // no edge id
+}
+
+int TNGraph::sortEdgeByAttr() {
+    for (TNodeI It = BegNI(); It < EndNI(); It++) {
+      int node_id = It.GetId();//node id
+        sort(GetNode(node_id).AttrFltIntKV.begin(), GetNode(node_id).AttrFltIntKV.end(), compareEdgeAttrByFist);
+    }
+    return -1;
 }
 
 /////////////////////////////////////////////////
