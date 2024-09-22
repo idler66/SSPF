@@ -1,1 +1,3 @@
-SSPF is the abbreviation of Small Step Path Finder. It includes a very efficient shortest path algorithm without relaxation operations named small step shortest path algorithm, and a new exact polynomial-time universal Steiner tree algorithm based on the shortest path algorithm.
+SSPF is the abbreviation of Small Step Path Finder. 
+It includes a very efficient shortest path algorithm without relaxation operations named small step shortest path algorithm.
+For more detailed information, please view “Small Step Shortest Path Algorithm and its Storage Optimization Method” in the project
